@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react";
+import Button from "../ui/Button";
 
 export default function JournalEditor({ onSave }: { onSave: (content: string) => void }) {
   const [text, setText] = useState("");
@@ -19,13 +20,14 @@ export default function JournalEditor({ onSave }: { onSave: (content: string) =>
         className="w-full h-40 p-4 rounded-xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none transition-all"
         placeholder="ここに自分の答えを書き留めましょう..."
       />
-      <button
+      <Button
         onClick={handleClick}
-        className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-all self-end active:scale-95 disabled:opacity-50"
+        variant="primary"
+        size="md"
         disabled={!text.trim()}
       >
         記録する
-      </button>
+      </Button>
     </div>
   );
 }
