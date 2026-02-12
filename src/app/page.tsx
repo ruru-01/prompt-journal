@@ -3,12 +3,17 @@
 import { useState } from "react";
 import PromptDisplay from "../components/features/PromptDisplay";
 import JournalEditor from "../components/features/JournalEditor";
+import JournalCard from "@/components/features/JournalCard";
 
 type JournalEntry = {
   id: string;
   prompt: string;
   content: string;
   createdAt: Date;
+  aiFeedback?: {
+    empathy: string;
+    deepDive: string;
+  };
 }
 
 export default function Home() {
@@ -19,9 +24,15 @@ export default function Home() {
   const handleSave = (content: string) => {
     const newEntry: JournalEntry = {
       id: crypto.randomUUID(), // ランダムなIDを生成
-      prompt: "今日、新しく学んだことはなんですか？", // 今は固定
+      prompt: "今日、一番心が動いた瞬間は何ですか？", // 今は固定
       content: content,
       createdAt: new Date(),
+
+      // 動作確認用に、2回に1回AIフィードバックを追加する
+      aiFeedback: entries.length % 2 === 0 ? {
+        empathy: "それはとても興味深い瞬間ですね。あなたの感じたことに共感します。",
+        deepDive: "その瞬間について、もう少し詳しく教えてもらえますか？"
+      } : undefined,
     };
 
     // 既存のリストの先頭に新しいエントリを追加する
@@ -45,17 +56,20 @@ export default function Home() {
         <section className="space-y-6">
           <h3 className="text-lg font-semibold text-slate-500 border-b pb-2">Previous Logs</h3>
           {entries.length === 0 ? (
-            <p className="text-slate-400 text-center py-8 italic">まだ記録がありません。自分と対話してみましょう。</p>
+            <p className="text-slate-400 text-center py-8 italic">
+              まだ記録がありません。自分と対話してみましょう。
+              </p>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               {entries.map((entry) => (
-                <div key={entry.id} className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                  <p className="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-widest">
-                    {entry.createdAt.toLocaleDateString()}
-                  </p>
-                  <h4 className="font-semibold text-slate-800 mb-2 font-serif italic text-lg leading-snug">Q: {entry.prompt}</h4>
-                  <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{entry.content}</p>
-                </div>
+                <JournalCard
+                  key={entry.id}
+                  date={entry.createdAt.toLocaleDateString()}
+                  question={entry.prompt}
+                  answer={entry.content}
+                  aiFeedback={entry.aiFeedback}
+                 >
+                </JournalCard>
               ))}
             </div>
           )}
