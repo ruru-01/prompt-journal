@@ -21,24 +21,30 @@ export default function Home() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
 
   // フォームが送信されたときの処理
-  const handleSave = (content: string) => {
-    const newEntry: JournalEntry = {
-      id: crypto.randomUUID(), // ランダムなIDを生成
-      prompt: "今日、一番心が動いた瞬間は何ですか？", // 今は固定
-      content: content,
-      createdAt: new Date(),
+  const handleSave = async (content: string) => {
 
-      // 動作確認用に、2回に1回AIフィードバックを追加する
-      aiFeedback: entries.length % 2 === 0 ? {
-        empathy: "それはとても興味深い瞬間ですね。あなたの感じたことに共感します。",
-        deepDive: "その瞬間について、もう少し詳しく教えてもらえますか？"
-      } : undefined,
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        body: JSON.stringify({ content, prompt: "今日、一番心が動いた瞬間は何ですか？" }),
+      })
+
+      const aiData = await response.json();
+
+      const newEntry: JournalEntry = {
+        id: crypto.randomUUID(), // ランダムなIDを生成
+        prompt: "今日、一番心が動いた瞬間は何ですか？", // 今は固定
+        content: content,
+        createdAt: new Date(),
+        aiFeedback: aiData,
     };
 
     // 既存のリストの先頭に新しいエントリを追加する
     setEntries([newEntry, ...entries]);
-  };
-
+    } catch (error) {
+      console.error("AI連携失敗", error);
+    };
+  }
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
       <header className="mb-12 border-b pb-4 text-center">
@@ -68,7 +74,7 @@ export default function Home() {
                   question={entry.prompt}
                   answer={entry.content}
                   aiFeedback={entry.aiFeedback}
-                 >
+                >
                 </JournalCard>
               ))}
             </div>
