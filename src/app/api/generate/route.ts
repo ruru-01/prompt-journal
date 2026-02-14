@@ -1,47 +1,54 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
-
 export async function POST(req: Request) {
-
   try {
-  const { content, prompt } = await req.json();
+    const { content, prompt } = await req.json();
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const systemInstruction = `
+      あなたは親身なジャーナリングパートナーです。
+      ユーザーの回答に対して、以下の**2つのキーを持つJSONオブジェクトのみ**を返してください。余計な解説は一切不要です。
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      1. "empathy": ユーザーへの共感（200文字以内）
+      2. "deepDive": 次の気づきを促す問いかけ（1つ）
 
-  const systemInstruction = `
-  あなたは親身なジャーナリングパートナーです。
-  ユーザーの回答に対して、以下の2点を必ずJSON形式で返してください。
-  {
-    "empathy": "共感の言葉（200文字以内）",
-    "deepDive": "深掘りの問いかけ（1つ）"
-  }
-  返信は日本語のみで行ってください。
-  `;
+      返信例:
+      {"empathy": "それは大変でしたね。", "deepDive": "その時どう感じましたか？"}
+    `;
 
-  // AIに実行命令を出す
-  const result = await model.generateContent(`${systemInstruction}\n\n問い: ${prompt}\nユーザーの回答: ${content}`);
-  const response = await result.response;
-  const text = response.text();
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-  console.log("AIの生の回答:", text);
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: `${systemInstruction}\n\n問い: ${prompt}\n回答: ${content}` }]
+        }]
+      })
+    });
 
-  // 4. AIの回答を掃除してJSONに変換する
-  const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const data = await response.json();
 
-  // JSONの開始と終了を探して抽出（より頑丈にするため）
-  const jsonStart = cleanedText.indexOf('{');
-  const jsonEnd = cleanedText.lastIndexOf('}') + 1;
-  const jsonString = cleanedText.slice(jsonStart, jsonEnd);
+    if (!response.ok) {
+      console.error("APIエラー詳細:", data);
+      throw new Error(data.error?.message || "APIリクエストに失敗しました");
+    }
 
-  const feedback = JSON.parse(jsonString);
+    const aiText = data.candidates[0].content.parts[0].text;
+    console.log("AIの生の回答:", aiText);
 
-  // データをフロントに返す
-  return NextResponse.json(feedback);
+    // JSON抽出
+    const match = aiText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("JSON形式の回答が得られませんでした");
 
-  } catch(error) {
-    console.error("エラー詳細:", error);
-    return NextResponse.json({ error: "AI生成に失敗しました" }, { status: 500 });
+    const feedback = JSON.parse(match[0]);
+    return NextResponse.json(feedback);
+
+  } catch (error: any) {
+    console.error("詳細ログ:", error);
+    return NextResponse.json(
+      { error: "AI生成に失敗しました", message: error.message },
+      { status: 500 }
+    );
   }
 }

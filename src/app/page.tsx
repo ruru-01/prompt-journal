@@ -69,13 +69,12 @@ export default function Home() {
             <div className="grid gap-6">
               {entries.map((entry) => (
                 <JournalCard
-                  key={entry.id}
-                  date={entry.createdAt.toLocaleDateString()}
-                  question={entry.prompt}
-                  answer={entry.content}
-                  aiFeedback={entry.aiFeedback}
-                >
-                </JournalCard>
+                key={entry.id}
+                date={entry.createdAt.toLocaleDateString()}
+                question={entry.prompt}
+                answer={entry.content}
+                aiFeedback={entry.aiFeedback}
+                />
               ))}
             </div>
           )}
